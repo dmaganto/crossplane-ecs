@@ -1,0 +1,109 @@
+# Copyright dmaganto.infra, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ecscluster.microservices.dmaganto.infra
+  labels:
+    dmaganto.infra/provider: upbound
+    dmaganto.infra/cluster-type: tenant
+spec:
+  compositeTypeRef:
+    apiVersion: microservices.dmaganto.infra/v1alpha1
+    kind: XECSCluster
+  patchSets:
+    - name: common-parameters
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceConfig.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceConfig.deletionPolicy
+          toFieldPath: spec.deletionPolicy
+        - fromFieldPath: spec.resourceConfig.region
+          toFieldPath: spec.forProvider.region
+          type: FromCompositeFieldPath
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.resourceConfig.tenant
+              - fromFieldPath: spec.parameters.clusterName
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath: metadata.labels["cluster"]
+        - fromFieldPath: spec.resourceConfig.tenant
+          toFieldPath: metadata.labels["tenant"]
+          type: FromCompositeFieldPath
+  resources:
+    - name: clustercapacityprovider
+      base:
+        apiVersion: ecs.aws.upbound.io/v1beta1
+        kind: ClusterCapacityProviders
+        spec:
+          forProvider:
+            clusterNameSelector:
+              matchControllerRef: true
+#            defaultCapacityProviderStrategy:
+#              - base: 1
+#                capacityProvider: FARGATE
+#                weight: 100
+            region:
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+      readinessChecks:
+        - type: MatchCondition
+          matchCondition:
+            status: 'True'
+            type: Ready
+        - type: MatchCondition
+          matchCondition:
+            type: Synced
+            status: 'True'
+    - name: cluster
+      base:
+        apiVersion: ecs.aws.upbound.io/v1beta1
+        kind: Cluster
+        metadata:
+          labels:
+        spec:
+          forProvider:
+            region:
+            setting:
+            - name: containerInsights
+              value: enabled
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.resourceConfig.tenant
+              - fromFieldPath: spec.parameters.clusterName
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath:  metadata.labels["name"]
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.resourceConfig.tenant
+              - fromFieldPath: spec.parameters.clusterName
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath:  metadata.name
+#        - fromFieldPath: spec.resourceConfig.tenant
+#          toFieldPath: spec.forProvider.cluster
+#          type: FromCompositeFieldPath
+      readinessChecks:
+        - type: MatchCondition
+          matchCondition:
+            status: 'True'
+            type: Ready
+        - type: MatchCondition
+          matchCondition:
+            type: Synced
+            status: 'True'

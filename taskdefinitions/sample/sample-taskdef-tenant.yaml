@@ -1,0 +1,34 @@
+apiVersion: microservices.dmaganto.infra/v1alpha1
+kind: ECSTaskdef
+metadata:
+  name: service-offer
+spec:
+  compositionSelector:
+    matchLabels:
+      dmaganto.infra/provider: upbound
+      dmaganto.infra/taskdef-type: tenant
+  resourceConfig:
+    providerConfigName: default
+    tenant: tenant1
+    name: dmaganto
+    deletionPolicy: Delete
+    region: eu-central-1
+  parameters:
+    family: service-offer
+    task_id: "202424"
+    containerDefinitions: |-
+      [
+        {
+          "name": "service-offer",
+          "image": "public.ecr.aws/docker/library/python:alpine",
+          "essential":true,
+          "command": ["python", "-m", "http.server", "8080"],
+          "portMappings": [
+              {
+                  "containerPort": 8080,
+                  "hostPort": 8080,
+                  "protocol": "tcp"
+              }
+          ]
+        }
+      ]

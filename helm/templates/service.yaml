@@ -1,0 +1,22 @@
+apiVersion: microservices.dmaganto.infra/v1alpha1
+kind: ECSService
+metadata:
+  name: {{ .Values.serviceName }}
+spec:
+  compositionSelector:
+    matchLabels:
+      dmaganto.infra/provider: upbound
+      dmaganto.infra/service-type: tenant
+  resourceConfig:
+    providerConfigName: default
+    tenant: {{ .Values.tenant }}
+    name: {{ .Values.serviceName }}
+    deletionPolicy: Delete
+    region: {{ .Values.region }}
+  parameters:
+    clusterName: {{ .Values.clusterName }}
+    family: {{ .Values.serviceName }}
+    task_id: "{{ .Values.containerDefinitions | toString | sha256sum | trunc 10 }}"
+    desiredCount: {{ .Values.replicas }}
+    securityGroups: ["sg-xxxxxxxxxx"]
+    subnets: ["subnet-xxxxxxxxxx","subnet-xxxxxxxxxx"]

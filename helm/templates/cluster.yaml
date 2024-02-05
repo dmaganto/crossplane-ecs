@@ -1,0 +1,19 @@
+{{ if .Values.createCluster }}
+apiVersion: microservices.dmaganto.infra/v1alpha1
+kind: ECSCluster
+metadata:
+  name: {{ .Values.tenant }}
+spec:
+  compositionSelector:
+    matchLabels:
+      dmaganto.infra/provider: upbound
+      dmaganto.infra/cluster-type: tenant
+  resourceConfig:
+    providerConfigName: default
+    tenant: {{ .Values.tenant }}
+    name: {{ .Values.tenant }}
+    deletionPolicy: Delete
+    region: {{ .Values.region }}
+  parameters:
+    clusterName: {{ .Values.clusterName }}
+{{ end }}

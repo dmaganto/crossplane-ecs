@@ -1,0 +1,13 @@
+env: dev
+tenant: tenant1
+region: eu-west-1
+createCluster: true
+clusterName: dev1
+serviceName: &serviceName service-offer
+replicas: 1
+containerDefinitions:
+  name: *serviceName
+  image: public.ecr.aws/docker/library/alpine:latest
+  environment:
+    - name: "t3t"
+      value: "test21"

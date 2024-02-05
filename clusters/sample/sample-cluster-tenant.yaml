@@ -1,0 +1,17 @@
+apiVersion: microservices.dmaganto.infra/v1alpha1
+kind: ECSCluster
+metadata:
+  name: service
+spec:
+  compositionSelector:
+    matchLabels:
+      dmaganto.infra/provider: upbound
+      dmaganto.infra/cluster-type: tenant
+  resourceConfig:
+    providerConfigName: default
+    tenant: tenant1
+    name: dmaganto
+    deletionPolicy: Delete
+    region: eu-west-1
+  parameters:
+    clusterName: dev1

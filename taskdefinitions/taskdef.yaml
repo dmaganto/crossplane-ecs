@@ -1,0 +1,88 @@
+# Copyright dmaganto.infra, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ecstaskdef.microservices.dmaganto.infra
+  labels:
+    dmaganto.infra/provider: upbound
+    dmaganto.infra/taskdef-type: tenant
+spec:
+  compositeTypeRef:
+    apiVersion: microservices.dmaganto.infra/v1alpha1
+    kind: XECSTaskdef
+  patchSets:
+    - name: common-parameters
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceConfig.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceConfig.deletionPolicy
+          toFieldPath: spec.deletionPolicy
+        - fromFieldPath: spec.resourceConfig.region
+          toFieldPath: spec.forProvider.region
+          type: FromCompositeFieldPath
+        - fromFieldPath: spec.resourceConfig.tenant
+          toFieldPath: metadata.labels["tenant"]
+          type: FromCompositeFieldPath
+  resources:
+    - name: taskdefinition
+      base:
+        apiVersion: ecs.aws.upbound.io/v1beta1
+        kind: TaskDefinition
+        metadata:
+        spec:
+          forProvider:
+            containerDefinitions:
+            networkMode: awsvpc
+            family:
+            region:
+            requiresCompatibilities:
+            - FARGATE
+            memory:
+            cpu:
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+        - fromFieldPath: spec.parameters.containerDefinitions
+          toFieldPath: spec.forProvider.containerDefinitions
+          type: FromCompositeFieldPath
+        - fromFieldPath: spec.parameters.family
+          toFieldPath: spec.forProvider.family
+          type: FromCompositeFieldPath
+        - fromFieldPath: spec.parameters.memory
+          toFieldPath: spec.forProvider.memory
+          type: FromCompositeFieldPath
+        - fromFieldPath: spec.parameters.cpu
+          toFieldPath: spec.forProvider.cpu
+          type: FromCompositeFieldPath
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.parameters.family
+              - fromFieldPath: spec.parameters.task_id
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath: metadata.name
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.resourceConfig.tenant
+              - fromFieldPath: spec.parameters.family
+              - fromFieldPath: spec.parameters.task_id
+            strategy: string
+            string:
+              fmt: "%s-%s-%s"
+          toFieldPath: metadata.labels["taskdefinition"]
+      readinessChecks:
+        - type: MatchCondition
+          matchCondition:
+            status: 'True'
+            type: Ready
+        - type: MatchCondition
+          matchCondition:
+            type: Synced
+            status: 'True'
